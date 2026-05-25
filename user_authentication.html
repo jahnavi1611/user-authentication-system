@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Auth System Pro</title>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+  height: 100vh;
+  background: linear-gradient(135deg, #6366f1, #9333ea);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Glass Card */
+.card {
+  width: 350px;
+  padding: 30px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(15px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  color: white;
+  animation: fadeIn 0.8s ease;
+}
+
+h2 {
+  margin-bottom: 10px;
+}
+
+input, select {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border: none;
+  border-radius: 10px;
+  outline: none;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: #4f46e5;
+  color: white;
+  font-size: 16px;
+  margin-top: 10px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  background: #4338ca;
+  transform: scale(1.03);
+}
+
+.link {
+  margin-top: 10px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 14px;
+  color: #ddd;
+}
+
+.link:hover {
+  color: white;
+}
+
+.hidden {
+  display: none;
+}
+
+@keyframes fadeIn {
+  from {opacity: 0; transform: translateY(20px);}
+  to {opacity: 1; transform: translateY(0);}
+}
+
+.dashboard {
+  text-align: center;
+}
+
+.role {
+  margin-top: 10px;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.admin {
+  margin-top: 20px;
+  padding: 15px;
+  border-radius: 10px;
+  background: rgba(255,0,0,0.2);
+}
+</style>
+</head>
+
+<body>
+
+<!-- AUTH CARD -->
+<div class="card" id="auth">
+
+<h2 id="title">Login</h2>
+
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+
+<select id="role" class="hidden">
+<option value="user">User</option>
+<option value="admin">Admin</option>
+</select>
+
+<button onclick="handleAction()" id="actionBtn">Login</button>
+
+<div class="link" onclick="toggleMode()" id="toggleText">
+Don't have an account? Signup
+</div>
+
+<div id="otpSection" class="hidden">
+<input id="otp" placeholder="Enter OTP">
+<button onclick="verifyOTP()">Verify OTP</button>
+</div>
+
+</div>
+
+<!-- DASHBOARD -->
+<div class="card hidden dashboard" id="dashboard">
+<h2>Welcome 🎉</h2>
+<p id="userInfo"></p>
+
+<div id="adminPanel" class="admin hidden">
+🔥 Admin Panel Access Granted
+</div>
+
+<button onclick="logout()">Logout</button>
+</div>
+
+<script>
+
+let users = JSON.parse(localStorage.getItem("users")) || [];
+let mode = "login";
+let currentOTP = "";
+let tempUser = null;
+
+// SIMPLE HASH
+function hash(p) {
+  return btoa(p);
+}
+
+// TOKEN
+function createToken(user) {
+  return btoa(JSON.stringify(user));
+}
+
+function decodeToken(t) {
+  return JSON.parse(atob(t));
+}
+
+// SWITCH LOGIN/SIGNUP
+function toggleMode() {
+  mode = mode === "login" ? "signup" : "login";
+
+  title.innerText = mode === "login" ? "Login" : "Signup";
+  actionBtn.innerText = mode === "login" ? "Login" : "Signup";
+
+  role.classList.toggle("hidden");
+
+  toggleText.innerText = mode === "login"
+    ? "Don't have an account? Signup"
+    : "Already have an account? Login";
+}
+
+// HANDLE LOGIN/SIGNUP
+function handleAction() {
+  let e = email.value;
+  let p = hash(password.value);
+
+  if (mode === "signup") {
+    if (users.find(u => u.email === e)) {
+      alert("User exists");
+      return;
+    }
+
+    users.push({ email: e, password: p, role: role.value });
+    localStorage.setItem("users", JSON.stringify(users));
+
+    alert("Signup success!");
+    toggleMode();
+  }
+
+  else {
+    let user = users.find(u => u.email === e && u.password === p);
+
+    if (!user) {
+      alert("Invalid login");
+      return;
+    }
+
+    currentOTP = Math.floor(100000 + Math.random() * 900000);
+    alert("OTP: " + currentOTP);
+
+    tempUser = user;
+    otpSection.classList.remove("hidden");
+  }
+}
+
+// VERIFY OTP
+function verifyOTP() {
+  if (otp.value == currentOTP) {
+    let token = createToken(tempUser);
+    localStorage.setItem("token", token);
+    showDashboard();
+  } else {
+    alert("Wrong OTP");
+  }
+}
+
+// SHOW DASHBOARD
+function showDashboard() {
+  auth.classList.add("hidden");
+  dashboard.classList.remove("hidden");
+
+  let user = decodeToken(localStorage.getItem("token"));
+
+  userInfo.innerText = user.email;
+  
+  if (user.role === "admin") {
+    adminPanel.classList.remove("hidden");
+  }
+}
+
+// LOGOUT
+function logout() {
+  localStorage.removeItem("token");
+  location.reload();
+}
+
+// AUTO LOGIN
+if (localStorage.getItem("token")) {
+  showDashboard();
+}
+
+</script>
+
+</body>
+</html>
